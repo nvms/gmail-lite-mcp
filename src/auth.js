@@ -33,7 +33,7 @@ export async function readToken() {
   try {
     return JSON.parse(await readFile(tokenFile(), 'utf8'))
   } catch {
-    throw new Error('not signed in: run `npx gmail-lite-mcp auth` once')
+    throw new Error('not signed in: run `npx -y github:nvms/gmail-lite-mcp auth` once')
   }
 }
 
@@ -110,7 +110,7 @@ export async function accessToken() {
     body: new URLSearchParams({ client_id: client.id, client_secret: client.secret, refresh_token, grant_type: 'refresh_token' }),
   })
   const body = await response.json()
-  if (!response.ok) throw new Error(`Google refused the stored sign-in (${body.error_description || body.error}); run \`npx gmail-lite-mcp auth\` again`)
+  if (!response.ok) throw new Error(`Google refused the stored sign-in (${body.error_description || body.error}); run \`npx -y github:nvms/gmail-lite-mcp auth\` again`)
   cached = { token: body.access_token, expires: Date.now() + body.expires_in * 1000 }
   return cached.token
 }

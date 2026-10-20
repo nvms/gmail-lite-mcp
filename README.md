@@ -12,11 +12,11 @@ A small MCP server that reads Gmail: `search`, `get_message`, `get_thread`. It a
 4. Sign in:
 
    ```sh
-   npx gmail-lite-mcp auth
+   npx -y github:nvms/gmail-lite-mcp auth
    ```
 
 ## Use
 
 ```json
-{ "mcpServers": { "gmail": { "command": "npx", "args": ["-y", "gmail-lite-mcp"] } } }
+{ "mcpServers": { "gmail": { "command": "npx", "args": ["-y", "github:nvms/gmail-lite-mcp"] } } }
 ```
