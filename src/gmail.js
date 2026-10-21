@@ -2,7 +2,10 @@
 // matter, the body without HTML, and replies without the quoted history
 // beneath them.
 
-import { accessToken } from './auth.js'
+import { mkdir, writeFile, access } from 'node:fs/promises'
+import { homedir } from 'node:os'
+import { basename, extname, join, resolve } from 'node:path'
+import { accessToken, currentAccount, NAME } from './auth.js'
 
 const API = 'https://gmail.googleapis.com/gmail/v1/users/me'
 
@@ -92,8 +95,42 @@ function body(payload) {
   return html ? htmlText(decode(html.body.data)) : ''
 }
 
+// each attachment by its part: Gmail's attachment ids change from one fetch
+// to the next, a part's number in its message does not
 function attachments(payload) {
-  return parts(payload).filter((p) => p?.filename).map((p) => ({ name: p.filename, type: p.mimeType, size: p.body?.size ?? null }))
+  return parts(payload).filter((p) => p?.filename).map((p) => ({ part: p.partId, name: p.filename, type: p.mimeType, size: p.body?.size ?? null }))
+}
+
+// one attachment written to disk: into `folder`, or by default a folder of
+// its message's own; a file already there under the name is not replaced
+export async function saveAttachment({ id, part, folder }) {
+  const found = parts((await get(`/messages/${id}`, { format: 'full' })).payload).find((p) => p?.filename && p.partId === String(part))
+  if (!found) throw new Error(`message ${id} has no attachment in part ${part}; get_message lists them`)
+  const data = found.body?.attachmentId
+    ? (await get(`/messages/${id}/attachments/${found.body.attachmentId}`)).data
+    : found.body?.data
+  if (!data) throw new Error(`attachment ${found.filename} has no content`)
+  const dir = folder ? resolve(folder) : join(process.env.XDG_CACHE_HOME || join(homedir(), '.cache'), NAME, currentAccount() ?? 'account', id)
+  await mkdir(dir, { recursive: true })
+  const path = await freePath(dir, safeName(found.filename))
+  const bytes = Buffer.from(data, 'base64url')
+  await writeFile(path, bytes)
+  return { path, name: found.filename, type: found.mimeType, size: bytes.length }
+}
+
+// a file name of the attachment's own, never a path out of the folder
+function safeName(name) {
+  const plain = basename(String(name).replace(/\\/g, '/')).replace(/[\x00-\x1f]/g, '').trim()
+  return plain && plain !== '.' && plain !== '..' ? plain : 'attachment'
+}
+
+async function freePath(dir, name) {
+  const ext = extname(name)
+  const stem = name.slice(0, name.length - ext.length)
+  for (let n = 1; ; n++) {
+    const path = join(dir, n === 1 ? name : `${stem} (${n})${ext}`)
+    if (!(await access(path).then(() => true, () => false))) return path
+  }
 }
 
 function decodeEntities(text) {

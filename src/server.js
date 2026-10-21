@@ -6,9 +6,9 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
 import { command, signIn, useAccount } from './auth.js'
-import { message, search, thread } from './gmail.js'
+import { message, saveAttachment, search, thread } from './gmail.js'
 
-const VERSION = '0.1.0'
+const VERSION = '0.2.0'
 
 const cli = command(process.argv.slice(2))
 const fail = (error) => { console.error(error.message); process.exit(1) }
@@ -38,7 +38,7 @@ if (cli.auth) {
   }, answer(({ query, max, page_token }) => search({ query, max, pageToken: page_token })))
 
   server.registerTool('get_message', {
-    description: 'One message in full as plain text: its headers, body (HTML made plain) and the names of its attachments.',
+    description: 'One message in full as plain text: its headers, body (HTML made plain) and its attachments, each with the part to give save_attachment.',
     inputSchema: { id: z.string().describe('the message id from search') },
     annotations: readOnly,
   }, answer(message))
@@ -48,6 +48,16 @@ if (cli.auth) {
     inputSchema: { id: z.string().describe('the thread id from search') },
     annotations: readOnly,
   }, answer(thread))
+
+  server.registerTool('save_attachment', {
+    description: 'Downloads one attachment of a message to a file on this computer and returns its path, to open with your own tools (PDFs, images, documents). Name it by its message id and its part from get_message or get_thread. Saved into the folder given, or by default a folder of the message\'s own; an existing file of the same name is kept, the new one numbered.',
+    inputSchema: {
+      id: z.string().describe('the message id'),
+      part: z.string().describe('the attachment\'s part, as get_message lists it'),
+      folder: z.string().optional().describe('where to save it; by default a cache folder for this message'),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+  }, answer(saveAttachment))
 
   await server.connect(new StdioServerTransport())
 }

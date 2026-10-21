@@ -47,6 +47,7 @@ export async function useAccount(account) {
   current = account
 }
 let current = null
+export const currentAccount = () => current
 
 async function readClient() {
   let raw

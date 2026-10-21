@@ -1,7 +1,7 @@
 {
   "name": "gmail-lite-mcp",
-  "version": "0.1.0",
-  "description": "A small, read-only Gmail MCP server: search, read messages, read threads",
+  "version": "0.2.0",
+  "description": "A small, read-only Gmail MCP server: search, read messages, read threads, save attachments",
   "type": "module",
   "bin": {
     "gmail-lite-mcp": "src/server.js"

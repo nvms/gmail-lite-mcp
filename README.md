@@ -5,6 +5,7 @@ An MCP server that reads Gmail. It asks Google only for permission to read mail,
 - `search`: Gmail search, in the same syntax as Gmail's search box
 - `get_message`: one email in full, as plain text
 - `get_thread`: a whole conversation, as plain text
+- `save_attachment`: one attachment saved to a file, its path returned for the agent to open; by default under `~/.cache/gmail-lite-mcp/<account>/<message id>/`
 
 ## Setup
 
