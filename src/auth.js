@@ -1,8 +1,8 @@
-// Signing in. Two things are kept in the config folder: the Google app
-// (client.json, the OAuth client downloaded from Google Cloud Console), and
-// one sign-in per named account (accounts/<name>.json). Every account uses
-// the same app. The permissions asked for are only what the tools need, so
-// Google itself refuses anything more.
+// Signing in. Every account signs in through one Google app: the one built in
+// below, or your own (client.json in the config folder, the OAuth client
+// downloaded from Google Cloud Console). Each named account's sign-in is kept
+// in accounts/<name>.json. The permissions asked for are only what the tools
+// need, so Google itself refuses anything more.
 
 import { createHash, randomBytes } from 'node:crypto'
 import { spawn } from 'node:child_process'
@@ -14,6 +14,9 @@ import { join, resolve } from 'node:path'
 export const NAME = 'gmail-lite-mcp'
 export const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 const RUN = `npx -y github:nvms/${NAME}`
+
+// a Desktop app client, whose secret Google does not treat as secret
+const BUILT_IN = { id: '685018898416-phq7vm73bbos73c2ba717muaujl1cbjo.apps.googleusercontent.com', secret: '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' }
 
 const configDir = () => join(process.env.XDG_CONFIG_HOME || join(homedir(), '.config'), NAME)
 const clientFile = () => join(configDir(), 'client.json')
@@ -50,11 +53,16 @@ let current = null
 export const currentAccount = () => current
 
 async function readClient() {
+  const text = await readFile(clientFile(), 'utf8').catch((error) => {
+    if (error.code === 'ENOENT') return null
+    throw error
+  })
+  if (text === null) return BUILT_IN
   let raw
   try {
-    raw = JSON.parse(await readFile(clientFile(), 'utf8'))
+    raw = JSON.parse(text)
   } catch {
-    throw new Error(`no Google app yet: run ${RUN} auth <the client JSON you downloaded> --account <name>`)
+    throw new Error(`${clientFile()} is not JSON; replace it with ${RUN} auth <the client JSON you downloaded> --account <name>, or delete it to use the built-in app`)
   }
   const client = raw.installed ?? raw
   if (!client.client_id || !client.client_secret) throw new Error(`${clientFile()} is not a Desktop app client`)

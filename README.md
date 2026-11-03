@@ -9,15 +9,29 @@ An MCP server that reads Gmail. It asks Google only for permission to read mail,
 
 ## Setup
 
-There are three parts. Parts 1 and 2 are done once per computer; part 3 once per project.
+### 1. Sign in an account
 
-- **The Google app** is your own OAuth client in Google Cloud. One app serves every Google account you sign in, and it can serve [gcal-lite-mcp](https://github.com/nvms/gcal-lite-mcp), [gdrive-lite-mcp](https://github.com/nvms/gdrive-lite-mcp) too.
-- **An account** is one Google account signed in under a name you choose, like `work` or `personal`.
-- **The config** of each project names which account that project uses. There is no default account.
+Sign in a Google account under a name you choose, like `work` or `personal`:
 
-### 1. The Google app
+```sh
+npx -y github:nvms/gmail-lite-mcp auth --account work
+```
 
-If you already made one for [gcal-lite-mcp](https://github.com/nvms/gcal-lite-mcp), [gdrive-lite-mcp](https://github.com/nvms/gdrive-lite-mcp), skip to step 1.4 and enable the Gmail API in that same project.
+A browser opens. Choose the Google account to sign in as, and approve. Do this once per account on each computer. Signing in an account again (say, after changing its password) is the same command.
+
+### 2. Add it to a project
+
+In the project's MCP configuration, name the account it uses. There is no default account.
+
+```json
+{ "mcpServers": { "gmail": { "command": "npx", "args": ["-y", "github:nvms/gmail-lite-mcp", "--account", "work"] } } }
+```
+
+For two accounts in one project, add two entries, each with its own name and account.
+
+## Your own Google app
+
+Every account signs in through a Google app built into this server. To use your own instead (an OAuth client in your own Google Cloud project, which can serve [gcal-lite-mcp](https://github.com/nvms/gcal-lite-mcp) and [gdrive-lite-mcp](https://github.com/nvms/gdrive-lite-mcp) too):
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/) and create a project (project menu at the top, **New project**).
 2. In the left menu, open **Google Auth Platform**, then **Get started**. Give the app a name and your email.
@@ -27,41 +41,21 @@ If you already made one for [gcal-lite-mcp](https://github.com/nvms/gcal-lite-mc
 4. In the left menu, open **APIs & Services → Library**, search for **Gmail API**, and click **Enable**.
 5. Under **Google Auth Platform → Clients**, click **Create client**, choose **Desktop app**, and click **Create**. Download its JSON file.
 
-### 2. Sign in an account
-
-The first time, give the JSON file you downloaded, and a name for the account:
+Then sign in with that file once on each computer; it is stored, and every later sign-in there uses it:
 
 ```sh
 npx -y github:nvms/gmail-lite-mcp auth ~/Downloads/client_secret_XXXX.json --account work
 ```
 
-A browser opens. Choose the Google account to sign in as, and approve. The app is now stored, so every later account needs only its name:
-
-```sh
-npx -y github:nvms/gmail-lite-mcp auth --account personal
-```
-
-Signing in an account again (say, after changing its password) is the same command.
-
-### 3. Add it to a project
-
-In the project's MCP configuration, name the account it uses:
-
-```json
-{ "mcpServers": { "gmail": { "command": "npx", "args": ["-y", "github:nvms/gmail-lite-mcp", "--account", "work"] } } }
-```
-
-For two accounts in one project, add two entries, each with its own name and account.
-
 ## Where things are kept
 
-In `~/.config/gmail-lite-mcp/`: `client.json` is the Google app, and `accounts/<name>.json` is each signed-in account. Delete an account's file to sign it out.
+In `~/.config/gmail-lite-mcp/`: `accounts/<name>.json` is each signed-in account, and `client.json` is your own Google app, if you gave one. Delete an account's file to sign it out; delete `client.json` to go back to the built-in app, then sign each account in again.
 
 ## When something goes wrong
 
-- **"choose an account with --account"**: the config has no `--account`; see part 3.
-- **"no account NAME"**: that account has not signed in on this computer; see part 2.
-- **"Access blocked: … can only be used within its organization" (org_internal)**: the app's audience is Internal, but the account is outside its organization. Make it External and publish it (part 1.3).
-- **"… API has not been used in project … or it is disabled"**: enable the Gmail API (part 1.4).
-- **"Google refused account NAME"**: sign that account in again (part 2).
-- **Signed out every 7 days**: the app is still in Testing; publish it (part 1.3).
+- **"choose an account with --account"**: the config has no `--account`; see part 2.
+- **"no account NAME"**: that account has not signed in on this computer; see part 1.
+- **"Access blocked: … can only be used within its organization" (org_internal)**: the app's audience is Internal, but the account is outside its organization. Make it External and publish it (step 3 of your own Google app).
+- **"… API has not been used in project … or it is disabled"**: enable the Gmail API (step 4 of your own Google app).
+- **"Google refused account NAME"**: sign that account in again (part 1).
+- **Signed out every 7 days**: the app is still in Testing; publish it (step 3 of your own Google app).
